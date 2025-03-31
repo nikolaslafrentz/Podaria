@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galicia Integrated Map</title>
+    
+    <!-- Leaflet CSS and JavaScript -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 80px;
+            width: 100%;
+            height: calc(100% - 80px);
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 300px;
+        }
+        
+        .control-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 300px;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 90px;
+            right: 10px;
+            z-index: 1000;
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .legend-item {
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+        
+        .legend-label {
+            font-size: 12px;
+        }
+        
+        .status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            background-color: white;
+            border-top: 1px solid #e9ecef;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            z-index: 2;
+        }
+        
+        .status-section {
+            display: flex;
+            flex-direction: column;
+            margin-right: 20px;
+            min-width: 140px;
+        }
+        
+        .coordinates {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        select, button {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ced4da;
+            background-color: white;
+            margin-bottom: 8px;
+            font-family: 'Roboto', sans-serif;
+        }
+        
+        button {
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #0069d9;
+        }
+        
+        h1, h2, h3 {
+            margin-top: 0;
+            color: #343a40;
+        }
+        
+        h1 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        h2 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        
+        h3 {
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        
+        p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #495057;
+        }
+        
+        .layer-group {
+            margin-bottom: 10px;
+        }
+        
+        .layer-group h3 {
+            margin-bottom: 5px;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 5px;
+        }
+        
+        .layer-control {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div id="info-panel" class="info-panel">
+        <h2>Feature Information</h2>
+        <div id="feature-info">
+            <p>Click on map elements to view details</p>
+        </div>
+    </div>
+    
+    <div id="control-panel" class="control-panel">
+        <h2>Layer Controls</h2>
+        
+        <div class="layer-group">
+            <h3>Base Maps</h3>
+            <div class="layer-control">
+                <input type="radio" id="osm" name="baseLayer" value="osm" checked>
+                <label for="osm">OpenStreetMap</label>
+            </div>
+            <div class="layer-control">
+                <input type="radio" id="satellite" name="baseLayer" value="satellite">
+                <label for="satellite">Satellite Imagery</label>
+            </div>
+        </div>
+        
+        <div class="layer-group">
+            <h3>Satellite Indices</h3>
+            <div class="layer-control">
+                <input type="checkbox" id="rgb" name="satelliteLayer" value="rgb">
+                <label for="rgb">True Color (RGB)</label>
+            </div>
+            <div class="layer-control">
+                <input type="checkbox" id="ndvi" name="satelliteLayer" value="ndvi">
+                <label for="ndvi">NDVI (Vegetation)</label>
+            </div>
+            <div class="layer-control">
+                <input type="checkbox" id="ndwi" name="satelliteLayer" value="ndwi">
+                <label for="ndwi">NDWI (Water)</label>
+            </div>
+        </div>
+        
+        <div class="layer-group">
+            <h3>Power Grid</h3>
+            <div class="layer-control">
+                <input type="checkbox" id="grid" name="gridLayer" value="grid" checked>
+                <label for="grid">Transmission Lines</label>
+            </div>
+            <div class="layer-control">
+                <input type="checkbox" id="substations" name="gridLayer" value="substations" checked>
+                <label for="substations">Substations</label>
+            </div>
+        </div>
+    </div>
+    
+    <div class="legend" id="legend">
+        <h3>Legend</h3>
+        <div class="legend-item">
+            <span class="legend-color" style="background: #3388ff;"></span>
+            <span class="legend-label">Transmission Lines</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color" style="background: #3388ff; border-radius: 50%;"></span>
+            <span class="legend-label">Substations</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color" style="background: #000; opacity: 0.4;"></span>
+            <span class="legend-label">Galicia Boundary</span>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        <div class="status-section">
+            <h3>Galicia, Spain</h3>
+            <div id="coordinates" class="coordinates">Coordinates: --.--, --.-</div>
+        </div>
+        <div class="status-section">
+            <h3>Transmission Grid</h3>
+            <div>Total: 22,215.66 km</div>
+        </div>
+        <div class="status-section">
+            <h3>Data Source</h3>
+            <div>REData API + GEE</div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize the map centered on Galicia, Spain
+        const map = L.map('map').setView([42.8, -8.0], 8);
+        
+        // Add OpenStreetMap as a base layer
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Add the Sentinel-2 satellite imagery as another base layer
+        const satelliteLayer = L.tileLayer('https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/28c5e3ac5752af25cb40903c1c3b1a62-4157853aac81570ebd02d8e779570457/tiles/{z}/{x}/{y}', {
+            attribution: 'Sentinel-2 imagery &copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>',
+            maxZoom: 14,
+            opacity: 0.8
+        });
+        
+        // Define satellite index layers
+        const rgbLayer = L.tileLayer('https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/28c5e3ac5752af25cb40903c1c3b1a62-4157853aac81570ebd02d8e779570457/tiles/{z}/{x}/{y}', {
+            attribution: 'RGB &copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>',
+            maxZoom: 14,
+            opacity: 0.7
+        });
+        
+        const ndviLayer = L.tileLayer('https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/cd5bbbbeadd6edb1e7b62fe87bb79b0a-458288867021db551dc76dbf9f3850e8/tiles/{z}/{x}/{y}', {
+            attribution: 'NDVI &copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>',
+            maxZoom: 14,
+            opacity: 0.7
+        });
+        
+        const ndwiLayer = L.tileLayer('https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/7357fb9df7e8e6a7dbd6e0e51f70990b-034f8d2e093c966f30779a1d04c8dca7/tiles/{z}/{x}/{y}', {
+            attribution: 'NDWI &copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>',
+            maxZoom: 14,
+            opacity: 0.7
+        });
+        
+        // Function to show feature information in the info box
+        function showFeatureInfo(feature) {
+            const props = feature.properties;
+            let html = '<h3>' + props.name + '</h3>';
+            
+            if (props.type === 'transmission_line') {
+                html += '<p>Type: Transmission Line</p>';
+                html += '<p>Voltage: ' + props.voltage + '</p>';
+            } else if (props.type === 'substation') {
+                html += '<p>Type: Substation</p>';
+                html += '<p>Capacity: ' + props.capacity + '</p>';
+            } else if (props.type === 'grid_summary') {
+                html += '<p>Total Transmission Lines: ' + props.total_km + ' km</p>';
+                html += '<p>Source: ' + props.data_source + '</p>';
+            } else if (props.type === 'boundary') {
+                html += '<p>Type: Regional Boundary</p>';
+                html += '<p>Region: Galicia, Spain</p>';
+            }
+            
+            document.getElementById('feature-info').innerHTML = html;
+        }
+        
+        // Define power grid GeoJSON data
+        const gridData = {
+            "type": "FeatureCollection",
+            "features": [
+                // Main backbone - Running north-south through center of Galicia
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "grid_line_1",
+                        "name": "Galicia Central Transmission Line",
+                        "voltage": "Mixed 400kV/220kV",
+                        "type": "transmission_line",
+                        "color": "#3388ff",
+                        "weight": 3
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [-8.0, 43.5], [-8.0, 43.2], [-8.0, 42.9], [-7.9, 42.6], [-7.9, 42.3]
+                        ]
+                    }
+                },
+                // Eastern branch
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "grid_line_2",
+                        "name": "Eastern Galicia Line",
+                        "voltage": "220kV",
+                        "type": "transmission_line", 
+                        "color": "#3388ff",
+                        "weight": 3
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [-8.0, 43.2], [-7.8, 43.2], [-7.6, 43.1], [-7.4, 43.0]
+                        ]
+                    }
+                },
+                // Western coastal route
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "grid_line_3",
+                        "name": "Western Coastal Line",
+                        "voltage": "400kV",
+                        "type": "transmission_line",
+                        "color": "#3388ff",
+                        "weight": 3
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [-8.0, 43.5], [-8.3, 43.4], [-8.5, 43.3], [-8.6, 43.0], [-8.7, 42.6], [-8.8, 42.2]
+                        ]
+                    }
+                },
+                // Connecting east-west routes
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "grid_line_4",
+                        "name": "Northern Cross-Connection",
+                        "voltage": "220kV",
+                        "type": "transmission_line",
+                        "color": "#3388ff",
+                        "weight": 3
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [-8.7, 42.6], [-8.4, 42.6], [-8.0, 42.6], [-7.7, 42.6], [-7.4, 42.6]
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "grid_line_5",
+                        "name": "Southern Cross-Connection",
+                        "voltage": "220kV",
+                        "type": "transmission_line",
+                        "color": "#3388ff",
+                        "weight": 3
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [-7.9, 42.3], [-8.2, 42.3], [-8.5, 42.3], [-8.8, 42.2]
+                        ]
+                    }
+                },
+                // Southeastern route
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "grid_line_6",
+                        "name": "Southeastern Connection",
+                        "voltage": "220kV",
+                        "type": "transmission_line",
+                        "color": "#3388ff",
+                        "weight": 3
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [-7.9, 42.3], [-7.7, 42.1], [-7.6, 42.0], [-7.3, 41.9]
+                        ]
+                    }
+                },
+                // Add substations at strategic junctions
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "substation_1",
+                        "name": "Northern Substation",
+                        "type": "substation",
+                        "capacity": "400kV"
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-8.0, 43.5]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "substation_2",
+                        "name": "Eastern Substation",
+                        "type": "substation",
+                        "capacity": "220kV"
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-7.4, 43.0]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "substation_3",
+                        "name": "Western Coastal Substation",
+                        "type": "substation",
+                        "capacity": "400kV"
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-8.8, 42.2]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "substation_4",
+                        "name": "Central Substation",
+                        "type": "substation",
+                        "capacity": "400kV"
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-8.0, 42.9]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "substation_5",
+                        "name": "Southeastern Substation",
+                        "type": "substation",
+                        "capacity": "220kV"
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-7.3, 41.9]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "galicia_boundary",
+                        "name": "Galicia Region Boundary",
+                        "type": "boundary",
+                        "color": "#000",
+                        "weight": 2,
+                        "opacity": 0.7,
+                        "fillOpacity": 0.1
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [-8.9, 43.8],
+                            [-6.7, 43.8],
+                            [-6.7, 41.8],
+                            [-8.9, 41.8],
+                            [-8.9, 43.8]
+                        ]]
+                    }
+                }
+            ]
+        };
+        
+        // Add the transmission lines
+        const transmissionLines = L.geoJSON(gridData, {
+            filter: feature => feature.properties.type === 'transmission_line',
+            style: feature => ({
+                color: feature.properties.color || '#3388ff',
+                weight: feature.properties.weight || 3,
+                opacity: 0.8
+            }),
+            onEachFeature: (feature, layer) => {
+                layer.on({
+                    click: () => showFeatureInfo(feature)
+                });
+            }
+        }).addTo(map);
+        
+        // Add substations
+        const substations = L.geoJSON(gridData, {
+            filter: feature => feature.properties.type === 'substation',
+            pointToLayer: (feature, latlng) => {
+                return L.circleMarker(latlng, {
+                    radius: 6,
+                    fillColor: '#3388ff',
+                    color: '#000',
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                });
+            },
+            onEachFeature: (feature, layer) => {
+                layer.on({
+                    click: () => showFeatureInfo(feature)
+                });
+            }
+        }).addTo(map);
+        
+        // Add boundary
+        const boundaries = L.geoJSON(gridData, {
+            filter: feature => feature.properties.type === 'boundary',
+            style: feature => ({
+                color: feature.properties.color || '#000',
+                weight: feature.properties.weight || 2,
+                opacity: feature.properties.opacity || 0.7,
+                fillOpacity: feature.properties.fillOpacity || 0.1
+            }),
+            onEachFeature: (feature, layer) => {
+                layer.on({
+                    click: () => showFeatureInfo(feature)
+                });
+            }
+        }).addTo(map);
+        
+        // Zoom to fit the boundary
+        map.fitBounds(boundaries.getBounds());
+        
+        // Update mouse coordinates on mouse move
+        map.on('mousemove', function(e) {
+            document.getElementById('coordinates').textContent = 
+                'Coordinates: ' + e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5);
+        });
+        
+        // Set up layer controls
+        document.getElementById('osm').addEventListener('change', function() {
+            if (this.checked) {
+                map.removeLayer(satelliteLayer);
+                osm.addTo(map);
+            }
+        });
+        
+        document.getElementById('satellite').addEventListener('change', function() {
+            if (this.checked) {
+                map.removeLayer(osm);
+                satelliteLayer.addTo(map);
+            }
+        });
+        
+        document.getElementById('rgb').addEventListener('change', function() {
+            if (this.checked) {
+                rgbLayer.addTo(map);
+                updateLegend('rgb');
+            } else {
+                map.removeLayer(rgbLayer);
+                updateLegend('rgb', false);
+            }
+        });
+        
+        document.getElementById('ndvi').addEventListener('change', function() {
+            if (this.checked) {
+                ndviLayer.addTo(map);
+                updateLegend('ndvi');
+            } else {
+                map.removeLayer(ndviLayer);
+                updateLegend('ndvi', false);
+            }
+        });
+        
+        document.getElementById('ndwi').addEventListener('change', function() {
+            if (this.checked) {
+                ndwiLayer.addTo(map);
+                updateLegend('ndwi');
+            } else {
+                map.removeLayer(ndwiLayer);
+                updateLegend('ndwi', false);
+            }
+        });
+        
+        document.getElementById('grid').addEventListener('change', function() {
+            if (this.checked) {
+                transmissionLines.addTo(map);
+            } else {
+                map.removeLayer(transmissionLines);
+            }
+        });
+        
+        document.getElementById('substations').addEventListener('change', function() {
+            if (this.checked) {
+                substations.addTo(map);
+            } else {
+                map.removeLayer(substations);
+            }
+        });
+        
+        // Function to update the legend when satellite indices are toggled
+        function updateLegend(index, add = true) {
+            let legend = document.getElementById('legend');
+            let indexLegendId = 'legend-' + index;
+            
+            if (add && !document.getElementById(indexLegendId)) {
+                let item = document.createElement('div');
+                item.className = 'legend-item';
+                item.id = indexLegendId;
+                
+                let color, label;
+                switch(index) {
+                    case 'rgb':
+                        color = 'linear-gradient(to right, #1a9641, #a6d96a, #f4f466, #d7191c)';
+                        label = 'True Color';
+                        break;
+                    case 'ndvi':
+                        color = 'linear-gradient(to right, #d73027, #fdae61, #a6d96a, #1a9850)';
+                        label = 'NDVI (Vegetation)';
+                        break;
+                    case 'ndwi':
+                        color = 'linear-gradient(to right, #a52a2a, #fcf8e3, #86c4ec, #0d47a1)';
+                        label = 'NDWI (Water)';
+                        break;
+                }
+                
+                item.innerHTML = `
+                    <span class="legend-color" style="background: ${color};"></span>
+                    <span class="legend-label">${label}</span>
+                `;
+                
+                legend.appendChild(item);
+            } else if (!add && document.getElementById(indexLegendId)) {
+                let item = document.getElementById(indexLegendId);
+                legend.removeChild(item);
+            }
+        }
+    </script>
+</body>
+</html>

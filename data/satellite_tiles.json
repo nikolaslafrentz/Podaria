@@ -1,0 +1,46 @@
+{
+  "center": [
+    42.8,
+    -8.0
+  ],
+  "zoom": 8,
+  "indices": [
+    {
+      "id": "rgb",
+      "name": "True Color (RGB)",
+      "description": "Natural color representation as seen by human eyes."
+    },
+    {
+      "id": "ndvi",
+      "name": "NDVI (Vegetation Health)",
+      "description": "Normalized Difference Vegetation Index: Measures vegetation health and density."
+    },
+    {
+      "id": "ndwi",
+      "name": "NDWI (Water Bodies)",
+      "description": "Normalized Difference Water Index: Highlights water bodies and moisture content."
+    }
+  ],
+  "periods": [
+    {
+      "name": "Jan-Mar 2023",
+      "start": "2023-01-01",
+      "end": "2023-03-31",
+      "imageCount": 88,
+      "indices": [
+        {
+          "id": "rgb",
+          "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/0465b701f3ed28b17ab3f61446081c50-f49ce7bd2029ed73523b2a105875010a/tiles/{z}/{x}/{y}"
+        },
+        {
+          "id": "ndvi",
+          "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/c7d9135969b40e6ca2faa92e15b1151c-9249396bf15df9603dd3867c9ff55f19/tiles/{z}/{x}/{y}"
+        },
+        {
+          "id": "ndwi",
+          "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/bbe50e3b6db2a790227557196626600f-97ef4eabd5f1cf302706dc686a234d91/tiles/{z}/{x}/{y}"
+        }
+      ]
+    }
+  ]
+}

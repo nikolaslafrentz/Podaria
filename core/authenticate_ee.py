@@ -6,8 +6,7 @@ def authenticate_earth_engine():
     try:
         # Check if authenticated already
         print("Checking if already authenticated...")
-        credentials = ee.ServiceAccountCredentials(None, None)
-        ee.Initialize(credentials)
+        ee.Initialize()
         print("Already authenticated!")
         return True
     except:
@@ -16,46 +15,24 @@ def authenticate_earth_engine():
     try:
         # Trigger the authentication flow.
         print("\n1. If a browser doesn't open automatically, copy the URL below and open it manually.")
-        auth_url = ee.Authenticate(code_in_console=True, quiet=False, return_auth_url=True)
+        # Use the simpler authentication method without the problematic parameter
+        ee.Authenticate()
         
-        if auth_url:
-            print(f"\n2. URL for manual authentication: {auth_url}")
-            
-            # Try to open browser automatically
-            try:
-                webbrowser.open(auth_url)
-                print("\nBrowser window should open automatically.")
-            except:
-                print("\nCouldn't open browser automatically. Please use the URL above.")
-        
-        print("\n3. Follow the steps in the browser to authenticate.")
-        print("4. Copy the authorization code from the browser.")
-        print("5. Paste the authorization code when prompted below.")
-        
-        # The actual authentication happens here
-        ee.Authenticate(code_in_console=True, quiet=False)
-        
-        print("\nAuthentication successful!")
-        print("Now initializing Earth Engine...")
+        print("\n2. Follow the steps in the browser to authenticate.")
+        print("3. Copy the authorization code from the browser when prompted.")
         
         # Initialize Earth Engine
         try:
-            ee.Initialize()
-            print("Earth Engine initialized successfully without project ID!")
+            ee.Initialize(project="ee-nikolaslafrentz")
+            print("Earth Engine initialized successfully!")
         except Exception as e:
-            print(f"Initializing without project ID failed: {str(e)}")
-            print("If you have a project ID, you can specify it when initializing:")
-            project_id = input("Enter your Google Cloud project ID (leave blank to skip): ")
-            if project_id:
-                try:
-                    ee.Initialize(project=project_id)
-                    print(f"Earth Engine initialized successfully with project ID: {project_id}")
-                except Exception as e:
-                    print(f"Initialization with project ID failed: {str(e)}")
-                    return False
-            else:
-                print("No project ID provided. Please obtain a valid project ID from Google Cloud Console.")
-                print("Visit: https://console.cloud.google.com/projectcreate")
+            print(f"Initializing with project ID failed: {str(e)}")
+            print("Trying to initialize without project ID...")
+            try:
+                ee.Initialize()
+                print("Earth Engine initialized successfully without project ID!")
+            except Exception as e:
+                print(f"Initialization without project ID failed: {str(e)}")
                 return False
         
         return True

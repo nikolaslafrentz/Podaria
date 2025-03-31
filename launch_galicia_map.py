@@ -1,51 +1,61 @@
 import os
+import webbrowser
 import subprocess
 import time
-import webbrowser
+from core.authenticate_ee import authenticate_earth_engine
+import core.galicia_satellite as galicia_satellite
+from core.transmission_lines_to_geojson import create_transmission_lines_geojson
+from core.generate_ee_tiles import generate_tile_urls
 
 def main():
     print("\n===== Galicia Map Launcher =====\n")
     
-    # Step 1: Run the map data generation script
-    print("Step 1: Generating satellite imagery data...")
-    try:
-        subprocess.run(["python", "core/galicia_map.py"], check=True)
-        print("u2713 Satellite data generated successfully!")
-    except subprocess.CalledProcessError as e:
-        print(f"u2717 Error generating satellite data: {e}")
-        return
+    # Step 1: Generate satellite imagery data
+    print("Step 1: Authenticating with Earth Engine...")
+    authenticate_earth_engine()
     
-    # Step 2: Attempt to get grid data (but continue even if it fails)
-    print("\nStep 2: Attempting to fetch electrical grid data...")
-    try:
-        # First try to fetch data from REData API
-        subprocess.run(["python", "core/redata_api.py"], check=False)
-        print("u2713 Grid data fetch attempt completed")
-        
-        # Then convert the data to GeoJSON format for map display
-        subprocess.run(["python", "core/transmission_lines_to_geojson.py"], check=True)
-        print("u2713 Transmission lines converted to GeoJSON format")
-    except Exception as e:
-        print(f"u2717 Error with grid data processing: {e}")
+    # Step 2: Generate fresh satellite tile URLs
+    print("\nStep 2: Generating satellite tile URLs...")
+    generate_tile_urls()
     
-    # Step 3: Open the map viewer
-    print("\nStep 3: Opening map viewer in browser...")
+    # Step 3: Generate electrical grid data
+    print("\nStep 3: Generating electrical grid data...")
+    create_transmission_lines_geojson()
+    
+    # Step 4: Start a local web server
+    print("\nStep 4: Starting local web server...")
+    server_process = None
+    
     try:
-        # Get absolute path to the map viewer
-        map_path = os.path.join(os.getcwd(), "mapping", "galicia_map_viewer.html")
-        map_url = f"file:///{map_path.replace(os.path.sep, '/')}"
+        # Use Python's built-in HTTP server
+        cmd = ['python', '-m', 'http.server', '8000']
+        server_process = subprocess.Popen(cmd)
         
-        # Open the URL in the default browser
+        # Give the server a moment to start
+        time.sleep(1)
+        
+        # Step 5: Open the map in the default browser
+        print("\nStep 5: Opening map in browser...")
+        # Default to the integrated map, but allow choosing others
+        map_url = "http://localhost:8000/mapping/galicia_integrated_map.html"
         webbrowser.open(map_url)
-        print(f"u2713 Map viewer opened at: {map_url}")
-    except Exception as e:
-        print(f"u2717 Error opening map viewer: {e}")
-        print("  Please manually open mapping/galicia_map_viewer.html in your browser")
+        
+        print("\n===== Launcher Complete =====\n")
+        print("The Galicia map application is now running.")
+        print("If the browser didn't open automatically, please manually open:")
+        print("mapping/galicia_integrated_map.html")
+        
+        # Keep the server running until the user interrupts with Ctrl+C
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\nShutting down the server...")
     
-    print("\n===== Launcher Complete =====\n")
-    print("The Galicia map application is now running.")
-    print("If the browser didn't open automatically, please manually open:")
-    print("mapping/galicia_map_viewer.html")
+    finally:
+        # Clean up the server process when done
+        if server_process:
+            server_process.terminate()
 
 if __name__ == "__main__":
     main()
