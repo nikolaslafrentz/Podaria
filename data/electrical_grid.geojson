@@ -1,0 +1,150 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "line1",
+        "name": "A Coruña - Santiago Line",
+        "voltage": "400kV",
+        "type": "transmission_line",
+        "color": "#FF0000",
+        "weight": 3
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-8.5441, 43.3623],
+          [-8.4441, 43.2623],
+          [-8.3441, 43.0623],
+          [-8.5441, 42.8802]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "line2",
+        "name": "Santiago - Vigo Line",
+        "voltage": "220kV",
+        "type": "transmission_line",
+        "color": "#FF7700",
+        "weight": 2
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-8.5441, 42.8802],
+          [-8.6441, 42.7802],
+          [-8.7441, 42.5802],
+          [-8.7372, 42.2331]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "line3",
+        "name": "Lugo - Ourense Line",
+        "voltage": "220kV",
+        "type": "transmission_line",
+        "color": "#FF7700",
+        "weight": 2
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-7.5568, 43.0123],
+          [-7.6568, 42.9123],
+          [-7.7568, 42.7123],
+          [-7.8568, 42.3414]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "line4",
+        "name": "Ourense - Vigo Line",
+        "voltage": "400kV",
+        "type": "transmission_line",
+        "color": "#FF0000",
+        "weight": 3
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-7.8568, 42.3414],
+          [-8.1568, 42.3014],
+          [-8.4568, 42.2514],
+          [-8.7372, 42.2331]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "substation1",
+        "name": "A Coruña Substation",
+        "type": "substation",
+        "capacity": "400kV"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-8.5441, 43.3623]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "substation2",
+        "name": "Santiago Substation",
+        "type": "substation",
+        "capacity": "400kV"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-8.5441, 42.8802]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "substation3",
+        "name": "Vigo Substation",
+        "type": "substation",
+        "capacity": "400kV"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-8.7372, 42.2331]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "substation4",
+        "name": "Lugo Substation",
+        "type": "substation",
+        "capacity": "220kV"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-7.5568, 43.0123]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "substation5",
+        "name": "Ourense Substation",
+        "type": "substation",
+        "capacity": "220kV"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-7.8568, 42.3414]
+      }
+    }
+  ]
+}

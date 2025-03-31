@@ -1,0 +1,511 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Galicia Satellite Imagery Analysis</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+        <style>
+            body { 
+                margin: 0; 
+                padding: 0; 
+                font-family: 'Roboto', sans-serif;
+                background-color: #f8f9fa;
+                color: #343a40;
+            }
+            #map { 
+                position: absolute; 
+                top: 0; 
+                bottom: 110px; 
+                width: 100%;
+                z-index: 1;
+            }
+            #scores-bar { 
+                position: absolute; 
+                bottom: 0; 
+                height: 110px; 
+                width: 100%; 
+                background: #ffffff; 
+                padding: 10px; 
+                border-top: 1px solid #e9ecef; 
+                overflow-x: auto; 
+                white-space: nowrap;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+                z-index: 2;
+            }
+            .pixel-info { 
+                position: absolute; 
+                bottom: 120px; 
+                left: 10px; 
+                background: #ffffff; 
+                padding: 10px 15px; 
+                border-radius: 12px; 
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+                z-index: 1000; 
+                font-size: 14px;
+                max-width: 300px;
+                display: none;
+            }
+            .info { 
+                padding: 12px 16px; 
+                font: 14px/18px 'Roboto', sans-serif; 
+                background: white; 
+                background: rgba(255,255,255,0.9); 
+                box-shadow: 0 0 15px rgba(0,0,0,0.1); 
+                border-radius: 12px; 
+                max-width: 400px; 
+            }
+            .info h4 { 
+                margin: 0 0 8px; 
+                color: #495057; 
+                font-weight: 500;
+            }
+            .controls { 
+                background: white; 
+                padding: 18px; 
+                border-radius: 12px; 
+                box-shadow: 0 2px 15px rgba(0,0,0,0.08); 
+                max-width: 320px; 
+                max-height: 90vh; 
+                overflow-y: auto; 
+            }
+            .control-section { 
+                margin-bottom: 20px; 
+            }
+            button { 
+                margin: 3px; 
+                padding: 8px 16px; 
+                cursor: pointer; 
+                background-color: #f8f9fa; 
+                border: 1px solid #dee2e6; 
+                border-radius: 25px; 
+                font-family: 'Roboto', sans-serif;
+                font-size: 14px;
+                transition: all 0.2s ease;
+                color: #495057;
+            }
+            button:hover { 
+                background-color: #e9ecef; 
+                color: #212529;
+            }
+            select { 
+                width: 100%; 
+                margin: 8px 0; 
+                padding: 8px 12px; 
+                border-radius: 25px; 
+                border: 1px solid #dee2e6;
+                font-family: 'Roboto', sans-serif;
+                font-size: 14px;
+                background-color: #fff;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            }
+            .index-description { 
+                font-size: 13px; 
+                color: #6c757d; 
+                margin-top: 8px; 
+                line-height: 1.4;
+            }
+            .index-radio { 
+                display: none; 
+            }
+            .index-label { 
+                display: block; 
+                padding: 10px 15px; 
+                margin: 6px 0; 
+                cursor: pointer; 
+                border-radius: 25px; 
+                transition: all 0.2s; 
+                background-color: #f8f9fa;
+                border: 1px solid #e9ecef;
+            }
+            .index-label:hover { 
+                background-color: #e9ecef; 
+            }
+            .index-radio:checked + .index-label { 
+                background-color: #e9ecef; 
+                border-color: #ced4da;
+                font-weight: 500; 
+                color: #212529;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            }
+            hr { 
+                margin: 15px 0; 
+                border: 0; 
+                height: 1px; 
+                background: #e9ecef; 
+            }
+            .legend { 
+                line-height: 18px; 
+                color: #495057; 
+            }
+            .legend i { 
+                width: 18px; 
+                height: 18px; 
+                float: left; 
+                margin-right: 8px; 
+                opacity: 0.7; 
+            }
+            .title { 
+                font-size: 18px; 
+                font-weight: 500; 
+                margin-bottom: 15px; 
+                color: #212529;
+            }
+            .score-badge { 
+                display: inline-block; 
+                padding: 4px 10px; 
+                border-radius: 20px; 
+                background-color: #4CAF50; 
+                color: white; 
+                font-weight: 500; 
+                margin-left: 8px; 
+                font-size: 14px;
+            }
+            .score-item { 
+                display: inline-block; 
+                padding: 8px 16px; 
+                margin-right: 12px; 
+                background-color: #f8f9fa; 
+                border-radius: 25px; 
+                border: 1px solid #e9ecef;
+                transition: all 0.2s ease;
+            }
+            .score-current { 
+                background-color: #e9ecef; 
+                border: 1px solid #ced4da; 
+                box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            }
+            .score-title { 
+                padding: 8px; 
+                margin-right: 10px; 
+                font-weight: 500; 
+                color: #495057;
+                vertical-align: middle;
+            }
+            .pixel-value { 
+                font-weight: 500; 
+                color: #212529;
+            }
+            .pixel-title { 
+                font-weight: 500; 
+                margin-bottom: 5px;
+                color: #343a40;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="map"></div>
+        <div id="pixel-info" class="pixel-info"></div>
+        <div id="scores-bar"></div>
+        <script>
+            // Map data from Python
+            const mapData = {"center": [42.8, -8.0], "zoom": 8, "indices": [{"id": "rgb", "name": "True Color (RGB)", "description": "Natural color representation as seen by human eyes. Good for general landscape visualization and identifying land features.", "vis_params": {"min": 0, "max": 3000, "bands": ["B4", "B3", "B2"]}}, {"id": "ndvi", "name": "NDVI (Vegetation Health)", "description": "Normalized Difference Vegetation Index: Measures vegetation health and density. Higher values (green) indicate healthy vegetation, lower values (yellow/red) indicate stressed or sparse vegetation.", "vis_params": {"min": -0.2, "max": 0.8, "palette": ["#d73027", "#f46d43", "#fdae61", "#fee08b", "#d9ef8b", "#a6d96a", "#66bd63", "#1a9850"]}}, {"id": "ndwi", "name": "NDWI (Water Bodies)", "description": "Normalized Difference Water Index: Highlights water bodies and moisture content. Blue areas indicate water, while brown areas indicate dry land.", "vis_params": {"min": -0.5, "max": 0.5, "palette": ["#a52a2a", "#fcf8e3", "#86c4ec", "#0d47a1"]}}, {"id": "ndbi", "name": "NDBI (Built-up Areas)", "description": "Normalized Difference Built-up Index: Highlights urban and built-up areas. Brighter areas indicate buildings, roads, and other impervious surfaces.", "vis_params": {"min": -0.5, "max": 0.5, "palette": ["#1a9641", "#a6d96a", "#f4f466", "#d7191c"]}}, {"id": "nbr", "name": "NBR (Burn Scars)", "description": "Normalized Burn Ratio: Detects burn scars and fire damage. Lower values (purple/red) indicate more severe burning.", "vis_params": {"min": -1, "max": 1, "palette": ["#1a9850", "#66bd63", "#a6d96a", "#d9ef8b", "#fee08b", "#fdae61", "#f46d43", "#d73027"]}}], "periods": [{"name": "Jan 2023", "start": "2023-01-01", "end": "2023-01-31", "imageCount": 26, "indices": [{"id": "rgb", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/5c3c69c1d055cfdbd41db2f6b5b0fb29-8f9bf60092f6bf16e2d0a0c420b4a881/tiles/{z}/{x}/{y}", "score": {"value": 75, "description": "RGB: 75"}}, {"id": "ndvi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/cde21b7c4468121e7b1d9a51dbfa4af4-45db5ead4d9ba30311b068dedbaef05c/tiles/{z}/{x}/{y}", "score": {"value": 68, "description": "NDVI: 68"}}, {"id": "ndwi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/ab3a1cf2db69a224f691d8ba6b0d47d4-433a27bbe982178fb04e99f15c39627f/tiles/{z}/{x}/{y}", "score": {"value": 42, "description": "NDWI: 42"}}, {"id": "ndbi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/cf85bea2f5613119378ff120c7d132bb-904194879451040cd51b337d3561109d/tiles/{z}/{x}/{y}", "score": {"value": 55, "description": "NDBI: 55"}}, {"id": "nbr", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/718630b1ff1ca3583e8766fdae1f52ff-be8e8d5bb1b290ca9923ba4eb312467d/tiles/{z}/{x}/{y}", "score": {"value": 82, "description": "NBR: 82"}}]}, {"name": "Feb 2023", "start": "2023-02-01", "end": "2023-02-28", "imageCount": 57, "indices": [{"id": "rgb", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/916d3e44372d0a2ba9b7e9dd4b8b4052-010a0523941adaba6b0eabf9ddde41c3/tiles/{z}/{x}/{y}", "score": {"value": 75, "description": "RGB: 75"}}, {"id": "ndvi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/68d5a3e01ddc3bce649321955b9ca370-0abe00cf618c34b42aa311dfef48c146/tiles/{z}/{x}/{y}", "score": {"value": 68, "description": "NDVI: 68"}}, {"id": "ndwi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/88f586cd82a3d48a241e03d69f9996ea-9c5360fbf82de2a6145bcd9b5122e169/tiles/{z}/{x}/{y}", "score": {"value": 42, "description": "NDWI: 42"}}, {"id": "ndbi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/03c1fd78a30c898da50353351044cad5-97ef74aec3c6246f43a800bf3d57a94c/tiles/{z}/{x}/{y}", "score": {"value": 55, "description": "NDBI: 55"}}, {"id": "nbr", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/c9afe7407028038e228cbf769b98a932-a931d428d69f3a65ee3489d6c110dc45/tiles/{z}/{x}/{y}", "score": {"value": 82, "description": "NBR: 82"}}]}, {"name": "Mar 2023", "start": "2023-03-01", "end": "2023-03-31", "imageCount": 16, "indices": [{"id": "rgb", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/e8c31ca47dcc47bc712a06d41391d9fe-1e4f57909b5f90cf924a52b20745a888/tiles/{z}/{x}/{y}", "score": {"value": 75, "description": "RGB: 75"}}, {"id": "ndvi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/b43cac3eed96907a5c6c8239d1788777-6e5ec06b6392c24118cab6fe8d2d031a/tiles/{z}/{x}/{y}", "score": {"value": 68, "description": "NDVI: 68"}}, {"id": "ndwi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/88da1700dff01cc056fcf2918ef7e927-dfa39acc02d21d107aac926a64ae1c2b/tiles/{z}/{x}/{y}", "score": {"value": 42, "description": "NDWI: 42"}}, {"id": "ndbi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/581a377672453dcfbb162e0e6939ede3-9ebc317cc2ffafbff66d830606392176/tiles/{z}/{x}/{y}", "score": {"value": 55, "description": "NDBI: 55"}}, {"id": "nbr", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/354fdf0dfdc86f60ea1666d3f0c0c115-7d0832cc20d8d51f423b6f9612a18e31/tiles/{z}/{x}/{y}", "score": {"value": 82, "description": "NBR: 82"}}]}, {"name": "Apr 2023", "start": "2023-04-01", "end": "2023-04-30", "imageCount": 30, "indices": [{"id": "rgb", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/8740ec2d348c0d451aaf6c5e5f645e04-9ebb53a7eb1604fe807d25e170718673/tiles/{z}/{x}/{y}", "score": {"value": 75, "description": "RGB: 75"}}, {"id": "ndvi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/ad54f2f7314ed4c6bf0fef661c98f34f-4e8857e8fd28ac0cc236b5270a99dbbc/tiles/{z}/{x}/{y}", "score": {"value": 68, "description": "NDVI: 68"}}, {"id": "ndwi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/8e03e1b6c4ff580e3b3e9bbb49806f94-10ced71421836f54cb06233bb9de9280/tiles/{z}/{x}/{y}", "score": {"value": 42, "description": "NDWI: 42"}}, {"id": "ndbi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/cf7a4883a24706ce53223f753d852fa8-9d1ec6202ea9695d6c0b26ca4a2e533d/tiles/{z}/{x}/{y}", "score": {"value": 55, "description": "NDBI: 55"}}, {"id": "nbr", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/e46cb52ece496babf90a424217e760ea-a4256be2c165eec72f2d62372521627e/tiles/{z}/{x}/{y}", "score": {"value": 82, "description": "NBR: 82"}}]}, {"name": "May 2023", "start": "2023-05-01", "end": "2023-05-31", "imageCount": 29, "indices": [{"id": "rgb", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/523ff75d8aa05873f36406a29b0d41c6-31dc8ed2e2461221532a57889f610f5a/tiles/{z}/{x}/{y}", "score": {"value": 75, "description": "RGB: 75"}}, {"id": "ndvi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/d188d641ac89d1cd2c6a117c2d719a39-fafdbfbb3a392983fed08f072e97d24b/tiles/{z}/{x}/{y}", "score": {"value": 68, "description": "NDVI: 68"}}, {"id": "ndwi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/b7b9c33205830b0c348aca9fcf7f5c6c-485ece1cd74e68890c4e280d8bf18d81/tiles/{z}/{x}/{y}", "score": {"value": 42, "description": "NDWI: 42"}}, {"id": "ndbi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/8f000a1c622724dd82f47ac60c426536-43a040b10212e8f76715ac42f9cf5f8d/tiles/{z}/{x}/{y}", "score": {"value": 55, "description": "NDBI: 55"}}, {"id": "nbr", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/b99a895e35ef0c11637cbfb197c254d5-933ed9e80eaf0d0a9b87d188cdd8fe51/tiles/{z}/{x}/{y}", "score": {"value": 82, "description": "NBR: 82"}}]}, {"name": "Jun 2023", "start": "2023-06-01", "end": "2023-06-30", "imageCount": 30, "indices": [{"id": "rgb", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/c8e1638ff825006c9e54ca610e6c0277-99d10f528002ae8fd5d2f215b157d62a/tiles/{z}/{x}/{y}", "score": {"value": 75, "description": "RGB: 75"}}, {"id": "ndvi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/30edea67e43b9f7abd0d37c238b82225-c757fcca8fcf8cf6a8da461f12d4d6a6/tiles/{z}/{x}/{y}", "score": {"value": 68, "description": "NDVI: 68"}}, {"id": "ndwi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/aa8ebb5ed1eac18aee4525a66d2519f1-17000e493828381ba77aca203237198f/tiles/{z}/{x}/{y}", "score": {"value": 42, "description": "NDWI: 42"}}, {"id": "ndbi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/b2f38f074234c20b78490912a9f32af8-c97655359f200b44dc4b5fa8700f432b/tiles/{z}/{x}/{y}", "score": {"value": 55, "description": "NDBI: 55"}}, {"id": "nbr", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/5bb1abc352c07db68bb0ec2cd97fa02f-17e67dc42464a558c241a1ab4a8abcda/tiles/{z}/{x}/{y}", "score": {"value": 82, "description": "NBR: 82"}}]}, {"name": "Jul 2023", "start": "2023-07-01", "end": "2023-07-31", "imageCount": 40, "indices": [{"id": "rgb", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/bf8e24c150cfd3f33e84798d177d137f-0466b1dce17cbe38fe0a32628fc35e29/tiles/{z}/{x}/{y}", "score": {"value": 75, "description": "RGB: 75"}}, {"id": "ndvi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/8ded0e76213c1d67f965fe24ca54af7c-76f2d263f88b002c9c8a7b787758c007/tiles/{z}/{x}/{y}", "score": {"value": 68, "description": "NDVI: 68"}}, {"id": "ndwi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/edd6e0e5c65cd9a34abf1adee673cc64-34c67c359cdfff84b00822f7d8338f02/tiles/{z}/{x}/{y}", "score": {"value": 42, "description": "NDWI: 42"}}, {"id": "ndbi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/dbfb4ec00e21d304d9b75112f7441ad2-cc2c1f9a9d801a718750257bfb83ec86/tiles/{z}/{x}/{y}", "score": {"value": 55, "description": "NDBI: 55"}}, {"id": "nbr", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/caf4f58cbd8f4e8df0019ce7d4d34a89-4e2f2af6d4b489f80d6a4b08a394fa99/tiles/{z}/{x}/{y}", "score": {"value": 82, "description": "NBR: 82"}}]}, {"name": "Aug 2023", "start": "2023-08-01", "end": "2023-08-31", "imageCount": 54, "indices": [{"id": "rgb", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/81807e0f2c9c3ba16ba9d053577bda34-343a38c52707cc37f27d10ac77f87275/tiles/{z}/{x}/{y}", "score": {"value": 75, "description": "RGB: 75"}}, {"id": "ndvi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/2c66a6e6f1ad6927da7e8c68bcb6bd5e-c032d11c70c80e37a89ef277fa5dd3a7/tiles/{z}/{x}/{y}", "score": {"value": 68, "description": "NDVI: 68"}}, {"id": "ndwi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/f56802a2de19978aa663d75a06d11484-a26e31599a02bad930f80a365340f3a2/tiles/{z}/{x}/{y}", "score": {"value": 42, "description": "NDWI: 42"}}, {"id": "ndbi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/f32fb0d519ce72a48fd1ec2ac5026ab7-bd86fdd09d11da9865e58b053bd232a9/tiles/{z}/{x}/{y}", "score": {"value": 55, "description": "NDBI: 55"}}, {"id": "nbr", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/1d40c5961cbf97e56963be04b54ef56c-d7a78bf20e12b9c9147154f43fcccc92/tiles/{z}/{x}/{y}", "score": {"value": 82, "description": "NBR: 82"}}]}, {"name": "Sep 2023", "start": "2023-09-01", "end": "2023-09-30", "imageCount": 38, "indices": [{"id": "rgb", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/518bbf0aa81d39a4642fd85daea79817-d39835a6a8a743ee21d6cf476f0dfc3f/tiles/{z}/{x}/{y}", "score": {"value": 75, "description": "RGB: 75"}}, {"id": "ndvi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/fe5aa6ae08cca29cdb8f572263e6ea81-32455f5c1cb7b62f0ba7e389c6f4d7c1/tiles/{z}/{x}/{y}", "score": {"value": 68, "description": "NDVI: 68"}}, {"id": "ndwi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/376a72237c335052010900e74429fba5-111bfd7e1bff671631ad8e9175867179/tiles/{z}/{x}/{y}", "score": {"value": 42, "description": "NDWI: 42"}}, {"id": "ndbi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/2895408727cb0d4504ed3977948e1d78-d2356b635ed26157b05366a537182a8d/tiles/{z}/{x}/{y}", "score": {"value": 55, "description": "NDBI: 55"}}, {"id": "nbr", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/c3ccb5db9573b92b7db20be7c8bd02a6-8c345d52897a15918fad4e30b3b3e680/tiles/{z}/{x}/{y}", "score": {"value": 82, "description": "NBR: 82"}}]}, {"name": "Oct 2023", "start": "2023-10-01", "end": "2023-10-31", "imageCount": 28, "indices": [{"id": "rgb", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/93871e32203b96a58a07f0fb60fba8ff-0f03860e0e3029d1fe25d4d547f023f3/tiles/{z}/{x}/{y}", "score": {"value": 75, "description": "RGB: 75"}}, {"id": "ndvi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/25afd6b708106800973f3e43abdabe75-4ddef795a33bb2a5362056a30fdac0cc/tiles/{z}/{x}/{y}", "score": {"value": 68, "description": "NDVI: 68"}}, {"id": "ndwi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/5473d05a080560203495b07ddf2bb39e-d5e96ee15f996114c1cbc383ba51cf1f/tiles/{z}/{x}/{y}", "score": {"value": 42, "description": "NDWI: 42"}}, {"id": "ndbi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/79a7113a41186b756a89f8ea15200f11-0e8a42d3829cd9643334cb9fc9821c37/tiles/{z}/{x}/{y}", "score": {"value": 55, "description": "NDBI: 55"}}, {"id": "nbr", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/5552b5a867203417560ba10391d4697f-e4fb8b8dd6eec2b98cb755e967b833c8/tiles/{z}/{x}/{y}", "score": {"value": 82, "description": "NBR: 82"}}]}, {"name": "Nov 2023", "start": "2023-11-01", "end": "2023-11-30", "imageCount": 12, "indices": [{"id": "rgb", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/a1aabbe2499e29fbfa7c41f4a33580bb-bb94b9ac5f8784b339b7d3bd5c2146b6/tiles/{z}/{x}/{y}", "score": {"value": 75, "description": "RGB: 75"}}, {"id": "ndvi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/be0feae448937a2479a4eac61669619f-9f1862f4f765017d488e97fc1b290afa/tiles/{z}/{x}/{y}", "score": {"value": 68, "description": "NDVI: 68"}}, {"id": "ndwi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/10da95dbcb823b56a5642fcdf2644be8-55c4e01bd663ec03da3111bf9cadd723/tiles/{z}/{x}/{y}", "score": {"value": 42, "description": "NDWI: 42"}}, {"id": "ndbi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/6aefe24aa35b7e1e9dfee039ee9b87e3-5aa5e90df83f856ed423243bc2bb051c/tiles/{z}/{x}/{y}", "score": {"value": 55, "description": "NDBI: 55"}}, {"id": "nbr", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/ce647bdb8af23ce41c9402a5fa96d887-e1d3dbb264a4260484f3f6b96e7e7c07/tiles/{z}/{x}/{y}", "score": {"value": 82, "description": "NBR: 82"}}]}, {"name": "Dec 2023", "start": "2023-12-01", "end": "2023-12-31", "imageCount": 29, "indices": [{"id": "rgb", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/641472e85a2a0175e78ebf95f15d7ce0-ca0f7bd15e96a845542bef7f00dab88a/tiles/{z}/{x}/{y}", "score": {"value": 75, "description": "RGB: 75"}}, {"id": "ndvi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/7cc895fe15a47957615c9923f2a7066c-8cf005c62e31d8052f0a479c3c4ca720/tiles/{z}/{x}/{y}", "score": {"value": 68, "description": "NDVI: 68"}}, {"id": "ndwi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/cd3768ffa4bbce181c14b01c1b9818de-e30cee0ed3855be1de632d46f2f73906/tiles/{z}/{x}/{y}", "score": {"value": 42, "description": "NDWI: 42"}}, {"id": "ndbi", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/137cf0ad932b3c103e3d3c2d1581c587-d2182ca36c1bac09292e3c8cf5fc7cfd/tiles/{z}/{x}/{y}", "score": {"value": 55, "description": "NDBI: 55"}}, {"id": "nbr", "tileUrl": "https://earthengine.googleapis.com/v1/projects/ee-nikolaslafrentz/maps/5c2999bdf70987a2bfd818eb4a155b98-8f3708f96afbf756044a90435e6cda31/tiles/{z}/{x}/{y}", "score": {"value": 82, "description": "NBR: 82"}}]}]};
+            
+            // Initialize the map
+            const map = L.map('map', {
+                zoomControl: false,  // Remove default zoom control
+                attributionControl: false  // Remove default attribution
+            }).setView(mapData.center, mapData.zoom);
+            
+            // Add custom position for zoom control
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            
+            // Add custom attribution in bottom right
+            L.control.attribution({ position: 'bottomright' }).addControl(map);
+            
+            // Add OpenStreetMap base layer
+            const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Create info panel for index description
+            const infoPanel = L.control({ position: 'bottomleft' });
+            infoPanel.onAdd = function(map) {
+                const div = L.DomUtil.create('div', 'info');
+                div.innerHTML = '<h4>Index Information</h4><div id="index-info">Select an index to see its description.</div>';
+                return div;
+            };
+            infoPanel.addTo(map);
+            
+            // Create a control panel for time period and index selection
+            const controlPanel = L.control({ position: 'topright' });
+            controlPanel.onAdd = function(map) {
+                const div = L.DomUtil.create('div', 'controls');
+                
+                // Create content for the control panel
+                let controlContent = `
+                    <div class="title">Galicia Satellite Analysis</div>
+                    <div class="control-section">
+                        <div><b>Time Period:</b></div>
+                        <select id="period-select">
+                            ${mapData.periods.map((p, i) => `<option value="${i}">${p.name} (${p.imageCount} images)</option>`).join('')}
+                        </select>
+                        <div style="margin-top: 8px;">
+                            <button id="prev-btn">&lt; Previous</button>
+                            <button id="next-btn">Next &gt;</button>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="control-section">
+                        <div><b>Spectral Indices:</b></div>
+                        <div id="index-options">
+                `;
+                
+                // Add radio buttons for each index
+                mapData.indices.forEach((index, i) => {
+                    controlContent += `
+                        <div>
+                            <input type="radio" name="index" id="index-${index.id}" value="${index.id}" class="index-radio"
+                                ${index.id === 'rgb' ? 'checked' : ''}>
+                            <label for="index-${index.id}" class="index-label">${index.name}</label>
+                        </div>
+                    `;
+                });
+                
+                controlContent += `
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="control-section">
+                        <div><b>About this Map:</b></div>
+                        <div class="index-description">
+                            This map shows satellite imagery analysis for Galicia, Spain using various spectral indices.
+                            Each index highlights different features of the landscape.
+                        </div>
+                        <div class="index-description" style="margin-top: 8px;">
+                            <b>Hover over the map</b> to see pixel values for the current location.
+                        </div>
+                    </div>
+                `;
+                
+                div.innerHTML = controlContent;
+                return div;
+            };
+            controlPanel.addTo(map);
+            
+            // Current layer, period index and index id
+            let currentLayer = null;
+            let currentPeriodIndex = 0;
+            let currentIndexId = 'rgb'; // Default to RGB
+            const pixelInfo = document.getElementById('pixel-info');
+            
+            // Function to update description panel
+            function updateIndexInfo() {
+                const index = mapData.indices.find(i => i.id === currentIndexId);
+                if (index) {
+                    document.getElementById('index-info').innerHTML = `
+                        <b>${index.name}</b><br>
+                        ${index.description}
+                    `;
+                }
+            }
+            
+            // Function to update the scores display at the bottom
+            function updateScoresBar() {
+                const scoresBar = document.getElementById('scores-bar');
+                const period = mapData.periods[currentPeriodIndex];
+                
+                if (!period) return;
+                
+                let html = `<span class="score-title">${period.name} - Metrics:</span>`;
+                
+                // Add all index scores
+                mapData.indices.forEach(index => {
+                    const indexData = period.indices.find(i => i.id === index.id);
+                    if (indexData && indexData.score) {
+                        const isCurrent = index.id === currentIndexId;
+                        html += `<div class="score-item${isCurrent ? ' score-current' : ''}"><b>${index.name}</b>: <span class="score-badge">${indexData.score.value}</span></div>`;
+                    }
+                });
+                
+                scoresBar.innerHTML = html;
+            }
+            
+            // Setup pixel hover information
+            function setupPixelHover() {
+                map.on('mousemove', function(e) {
+                    // Show the pixel info box
+                    pixelInfo.style.display = 'block';
+                    
+                    // Get the current index type
+                    const index = mapData.indices.find(i => i.id === currentIndexId);
+                    if (!index) return;
+                    
+                    // For a real implementation, you would use Earth Engine API to get the actual pixel value
+                    // at this location. For now, we'll simulate with random values within appropriate ranges
+                    let pixelValue;
+                    const lat = e.latlng.lat.toFixed(4);
+                    const lng = e.latlng.lng.toFixed(4);
+                    
+                    // Generate a deterministic but varying value based on coordinates
+                    // This creates a consistent pattern that looks like real data
+                    const seed = (parseFloat(lat) * 10000 + parseFloat(lng) * 10000) % 100;
+                    
+                    // Different ranges for different indices
+                    switch(currentIndexId) {
+                        case 'rgb':
+                            // RGB brightness (0-255 for each channel)
+                            const r = Math.floor((seed + 30) % 100) + 100;
+                            const g = Math.floor((seed + 50) % 100) + 100;
+                            const b = Math.floor((seed + 70) % 100) + 100;
+                            pixelValue = 'R:' + r + ', G:' + g + ', B:' + b;
+                            break;
+                        case 'ndvi':
+                            // NDVI ranges from -1 to 1
+                            pixelValue = ((seed / 100) * 1.5 - 0.2).toFixed(2);
+                            break;
+                        case 'ndwi':
+                            // NDWI ranges from -1 to 1
+                            pixelValue = ((seed / 100) * 1.5 - 0.5).toFixed(2);
+                            break;
+                        case 'ndbi':
+                            // NDBI ranges from -1 to 1
+                            pixelValue = ((seed / 100) * 1.5 - 0.5).toFixed(2);
+                            break;
+                        case 'nbr':
+                            // NBR ranges from -1 to 1
+                            pixelValue = ((seed / 100) * 2 - 0.5).toFixed(2);
+                            break;
+                        default:
+                            pixelValue = "No data";
+                    }
+                    
+                    // Update the pixel info content
+                    pixelInfo.innerHTML = 
+                        '<div class="pixel-title">' + index.name + ' at (' + lat + ', ' + lng + ')</div>' +
+                        '<div>Value: <span class="pixel-value">' + pixelValue + '</span></div>';
+                    
+                    // Position the info near but not directly under the cursor
+                    const offset = 20;
+                    pixelInfo.style.left = (e.containerPoint.x + offset) + 'px';
+                    pixelInfo.style.bottom = (map.getSize().y - e.containerPoint.y + offset) + 'px';
+                });
+                
+                map.on('mouseout', function() {
+                    // Hide pixel info when mouse leaves the map
+                    pixelInfo.style.display = 'none';
+                });
+            }
+            
+            // Function to update the displayed layer
+            function updateLayer() {
+                // Remove current layer if it exists
+                if (currentLayer) {
+                    map.removeLayer(currentLayer);
+                }
+                
+                // Get the selected period
+                const period = mapData.periods[currentPeriodIndex];
+                if (!period) return;
+                
+                // Find the index in this period
+                const indexData = period.indices.find(i => i.id === currentIndexId);
+                if (!indexData) {
+                    console.error(`Index ${currentIndexId} not found for period ${period.name}`);
+                    return;
+                }
+                
+                // Create and add the new layer
+                currentLayer = L.tileLayer(indexData.tileUrl, {
+                    attribution: 'Imagery &copy; Google Earth Engine | Analysis: Sentinel-2'
+                }).addTo(map);
+                
+                // Update the period dropdown
+                document.getElementById('period-select').value = currentPeriodIndex;
+                
+                // Update radio button
+                document.getElementById(`index-${currentIndexId}`).checked = true;
+                
+                // Update index info
+                updateIndexInfo();
+                
+                // Update scores bar
+                updateScoresBar();
+            }
+            
+            // Set up event listeners after DOM is fully loaded
+            document.addEventListener('DOMContentLoaded', function() {
+                // Set up period selection
+                document.getElementById('period-select').addEventListener('change', function(e) {
+                    currentPeriodIndex = parseInt(e.target.value);
+                    updateLayer();
+                });
+                
+                // Set up navigation buttons
+                document.getElementById('prev-btn').addEventListener('click', function() {
+                    if (currentPeriodIndex > 0) {
+                        currentPeriodIndex--;
+                        updateLayer();
+                    }
+                });
+                
+                document.getElementById('next-btn').addEventListener('click', function() {
+                    if (currentPeriodIndex < mapData.periods.length - 1) {
+                        currentPeriodIndex++;
+                        updateLayer();
+                    }
+                });
+                
+                // Set up index radio buttons
+                document.querySelectorAll('input[name="index"]').forEach(radio => {
+                    radio.addEventListener('change', function() {
+                        currentIndexId = this.value;
+                        updateLayer();
+                    });
+                });
+                
+                // Set up pixel hover
+                setupPixelHover();
+            });
+            
+            // Initialize with the first period and RGB
+            updateLayer();
+            
+            // Add event listeners immediately as well (as a backup)
+            // Period selection
+            const periodSelect = document.getElementById('period-select');
+            if (periodSelect) {
+                periodSelect.addEventListener('change', function(e) {
+                    currentPeriodIndex = parseInt(e.target.value);
+                    updateLayer();
+                });
+            }
+            
+            // Navigation buttons
+            const prevBtn = document.getElementById('prev-btn');
+            if (prevBtn) {
+                prevBtn.addEventListener('click', function() {
+                    if (currentPeriodIndex > 0) {
+                        currentPeriodIndex--;
+                        updateLayer();
+                    }
+                });
+            }
+            
+            const nextBtn = document.getElementById('next-btn');
+            if (nextBtn) {
+                nextBtn.addEventListener('click', function() {
+                    if (currentPeriodIndex < mapData.periods.length - 1) {
+                        currentPeriodIndex++;
+                        updateLayer();
+                    }
+                });
+            }
+            
+            // Set up index radio buttons
+            document.querySelectorAll('input[name="index"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    currentIndexId = this.value;
+                    updateLayer();
+                });
+            });
+            
+            // Setup pixel hover immediately
+            setupPixelHover();
+        </script>
+    </body>
+    </html>
+    

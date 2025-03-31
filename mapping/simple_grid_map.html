@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galicia Simple Transmission Grid Map</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""/>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .info-box {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background-color: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            max-width: 300px;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            right: 10px;
+            z-index: 1000;
+            background-color: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
+        
+        .legend-item {
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+        
+        .legend-label {
+            font-size: 12px;
+        }
+        
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+        }
+        
+        h2 {
+            margin: 10px 0 5px 0;
+            font-size: 14px;
+        }
+        
+        p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="info-box">
+        <h1>Galicia Transmission Grid</h1>
+        <p>Total Length: 22,215.66 km</p>
+        <p id="coordinates">Mouse coordinates: -</p>
+        <div id="feature-info">
+            <p>Click on map elements to view details</p>
+        </div>
+    </div>
+    
+    <div class="legend">
+        <h2>Legend</h2>
+        <div class="legend-item">
+            <span class="legend-color" style="background: #3388ff;"></span>
+            <span class="legend-label">Transmission Grid</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color" style="background: #000; opacity: 0.4;"></span>
+            <span class="legend-label">Galicia Boundary</span>
+        </div>
+    </div>
+    
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
+    
+    <script>
+        // Initialize the map centered on Galicia, Spain
+        const map = L.map('map').setView([42.8, -8.0], 8);
+        
+        // Add OpenStreetMap as a base layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Function to show feature information in the info box
+        function showFeatureInfo(feature) {
+            const props = feature.properties;
+            let html = '<h2>' + props.name + '</h2>';
+            
+            if (props.type === 'transmission_line') {
+                html += '<p>Type: Transmission Grid</p>';
+                html += '<p>Voltage: ' + props.voltage + '</p>';
+            } else if (props.type === 'boundary') {
+                html += '<p>Type: Regional Boundary</p>';
+            } else if (props.type === 'substation') {
+                html += '<p>Type: Substation</p>';
+                html += '<p>Capacity: ' + props.capacity + '</p>';
+            } else if (props.type === 'grid_summary') {
+                html += '<p>Type: Grid Summary</p>';
+                html += '<p>Total Length: ' + props.voltage + '</p>';
+            }
+            
+            document.getElementById('feature-info').innerHTML = html;
+        }
+        
+        // Direct GeoJSON data - no fetch required
+        const gridData = {
+            "type": "FeatureCollection",
+            "features": [
+                // Main backbone - Running north-south through center of Galicia
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "grid_line_1",
+                        "name": "Galicia Central Transmission Line",
+                        "voltage": "Mixed 400kV/220kV",
+                        "type": "transmission_line",
+                        "color": "#3388ff",
+                        "weight": 3
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [-8.0, 43.5], [-8.0, 43.2], [-8.0, 42.9], [-7.9, 42.6], [-7.9, 42.3]
+                        ]
+                    }
+                },
+                // Eastern branch
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "grid_line_2",
+                        "name": "Eastern Galicia Line",
+                        "voltage": "220kV",
+                        "type": "transmission_line", 
+                        "color": "#3388ff",
+                        "weight": 3
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [-8.0, 43.2], [-7.8, 43.2], [-7.6, 43.1], [-7.4, 43.0]
+                        ]
+                    }
+                },
+                // Western coastal route
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "grid_line_3",
+                        "name": "Western Coastal Line",
+                        "voltage": "400kV",
+                        "type": "transmission_line",
+                        "color": "#3388ff",
+                        "weight": 3
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [-8.0, 43.5], [-8.3, 43.4], [-8.5, 43.3], [-8.6, 43.0], [-8.7, 42.6], [-8.8, 42.2]
+                        ]
+                    }
+                },
+                // Connecting east-west routes
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "grid_line_4",
+                        "name": "Northern Cross-Connection",
+                        "voltage": "220kV",
+                        "type": "transmission_line",
+                        "color": "#3388ff",
+                        "weight": 3
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [-8.7, 42.6], [-8.4, 42.6], [-8.0, 42.6], [-7.7, 42.6], [-7.4, 42.6]
+                        ]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "grid_line_5",
+                        "name": "Southern Cross-Connection",
+                        "voltage": "220kV",
+                        "type": "transmission_line",
+                        "color": "#3388ff",
+                        "weight": 3
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [-7.9, 42.3], [-8.2, 42.3], [-8.5, 42.3], [-8.8, 42.2]
+                        ]
+                    }
+                },
+                // Southeastern route
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "grid_line_6",
+                        "name": "Southeastern Connection",
+                        "voltage": "220kV",
+                        "type": "transmission_line",
+                        "color": "#3388ff",
+                        "weight": 3
+                    },
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [-7.9, 42.3], [-7.7, 42.1], [-7.6, 42.0], [-7.3, 41.9]
+                        ]
+                    }
+                },
+                // Add substations at strategic junctions
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "substation_1",
+                        "name": "Northern Substation",
+                        "type": "substation",
+                        "capacity": "400kV"
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-8.0, 43.5]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "substation_2",
+                        "name": "Eastern Substation",
+                        "type": "substation",
+                        "capacity": "220kV"
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-7.4, 43.0]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "substation_3",
+                        "name": "Western Coastal Substation",
+                        "type": "substation",
+                        "capacity": "400kV"
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-8.8, 42.2]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "substation_4",
+                        "name": "Central Substation",
+                        "type": "substation",
+                        "capacity": "400kV"
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-8.0, 42.9]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "substation_5",
+                        "name": "Southeastern Substation",
+                        "type": "substation",
+                        "capacity": "220kV"
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-7.3, 41.9]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "grid_summary",
+                        "name": "Galicia Transmission Grid Summary",
+                        "type": "grid_summary",
+                        "voltage": "Total: 22,215.66 km"
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-7.95, 42.8]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": "galicia_boundary",
+                        "name": "Galicia Region Boundary",
+                        "type": "boundary",
+                        "color": "#000",
+                        "weight": 2,
+                        "opacity": 0.7,
+                        "fillOpacity": 0.1
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [-8.9, 43.8],
+                            [-6.7, 43.8],
+                            [-6.7, 41.8],
+                            [-8.9, 41.8],
+                            [-8.9, 43.8]
+                        ]]
+                    }
+                }
+            ]
+        };
+        
+        // Add the transmission lines
+        const transmissionLines = L.geoJSON(gridData, {
+            filter: feature => feature.properties.type === 'transmission_line',
+            style: feature => ({
+                color: feature.properties.color || '#3388ff',
+                weight: feature.properties.weight || 3,
+                opacity: 0.8
+            }),
+            onEachFeature: (feature, layer) => {
+                console.log('Added transmission line: ' + feature.properties.name);
+                layer.on({
+                    click: () => showFeatureInfo(feature)
+                });
+            }
+        }).addTo(map);
+        
+        // Add substations
+        const substations = L.geoJSON(gridData, {
+            filter: feature => feature.properties.type === 'substation',
+            style: feature => ({
+                radius: 5,
+                color: '#3388ff',
+                weight: 1,
+                opacity: 0.8,
+                fillOpacity: 0.8
+            }),
+            pointToLayer: (feature, latlng) => L.circleMarker(latlng),
+            onEachFeature: (feature, layer) => {
+                console.log('Added substation: ' + feature.properties.name);
+                layer.on({
+                    click: () => showFeatureInfo(feature)
+                });
+            }
+        }).addTo(map);
+        
+        // Add grid summary
+        const gridSummary = L.geoJSON(gridData, {
+            filter: feature => feature.properties.type === 'grid_summary',
+            style: feature => ({
+                radius: 5,
+                color: '#3388ff',
+                weight: 1,
+                opacity: 0.8,
+                fillOpacity: 0.8
+            }),
+            pointToLayer: (feature, latlng) => L.circleMarker(latlng),
+            onEachFeature: (feature, layer) => {
+                console.log('Added grid summary: ' + feature.properties.name);
+                layer.on({
+                    click: () => showFeatureInfo(feature)
+                });
+            }
+        }).addTo(map);
+        
+        // Add boundary
+        const boundaries = L.geoJSON(gridData, {
+            filter: feature => feature.properties.type === 'boundary',
+            style: feature => ({
+                color: feature.properties.color || '#000',
+                weight: feature.properties.weight || 2,
+                opacity: feature.properties.opacity || 0.7,
+                fillOpacity: feature.properties.fillOpacity || 0.1
+            }),
+            onEachFeature: (feature, layer) => {
+                console.log('Added boundary: ' + feature.properties.name);
+                layer.on({
+                    click: () => showFeatureInfo(feature)
+                });
+            }
+        }).addTo(map);
+        
+        // Zoom to fit the boundary
+        map.fitBounds(boundaries.getBounds());
+        
+        // Update mouse coordinates
+        map.on('mousemove', function(e) {
+            document.getElementById('coordinates').textContent = 
+                'Mouse coordinates: ' + e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5);
+        });
+        
+        // Show message when map is ready
+        console.log('Map is ready!');
+        document.getElementById('feature-info').innerHTML += '<p><i>Map loaded successfully!</i></p>';
+    </script>
+</body>
+</html>

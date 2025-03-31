@@ -1,0 +1,96 @@
+# Galicia Earth Engine & Mapping Project: Data Summary
+
+Date: March 31, 2025
+
+## Data Overview
+
+This document summarizes the data assets in the Galicia Earth Engine & Mapping Project, including types, sources, storage locations, and formats.
+
+## 1. Satellite Imagery Data
+
+- **Source**: Google Earth Engine (Sentinel-2)
+- **Time Period**: Recent satellite imagery (automatically selected by Earth Engine)
+- **Resolution**: 10-meter pixel resolution
+- **Bands**: RGB (B4, B3, B2)
+- **Coverage**: Galicia region, Spain (approx. 29,574 sq km)
+- **Access Method**: Accessed through Earth Engine API via authenticated Python scripts
+- **Storage**: Not stored locally; accessed via tiles from Earth Engine servers
+- **Format**: Accessed as image collection and presented as web map tiles
+
+## 2. Electrical Grid Data
+
+- **Source**: REData API (Red Eléctrica de España)
+- **Retrieval Date**: March 31, 2025
+- **Data Type**: Transmission line statistics 
+- **Key Metrics**: 
+  * Total transmission lines: 22,215.66 kilometers
+  * Coverage: Galicia region (Autonomous Community ID: 17)
+- **Files**:
+  * Raw Data: /data/transmission_lines.csv
+  * Raw JSON: /data/transmission_lines_raw.json
+  * Processed: /data/electrical_grid.geojson
+- **Format**: CSV, JSON, and GeoJSON
+
+## 3. Power Outage Data
+
+- **Status**: Not currently available
+- **Source**: Would be retrieved from REData API (tasa-indisponibilidad endpoint)
+- **Expected Format**: Would be stored as GeoJSON in /data/power_outages.geojson
+- **Additional Notes**: API access has been implemented but data is not yet being retrieved successfully
+
+## 4. Map Visualization
+
+- **Type**: Interactive web map
+- **Technology**: Leaflet.js
+- **Base Maps**: OpenStreetMap and Sentinel-2 satellite imagery
+- **Layers**: Transmission lines, substations, and region boundary
+- **Files**: 
+  * /mapping/galicia_map_viewer.html (original map viewer)
+  * /mapping/simple_grid_map.html (simplified map with embedded data)
+  * /mapping/galicia_unified_map.html (more advanced map)
+
+## 5. Log Files
+
+- **Purpose**: Processing records and debugging information
+- **Location**: /data/geo_polygons_process.log
+- **Size**: 187,279 bytes
+- **Content**: Contains logs of satellite image processing and polygon creation
+
+## 6. Project Structure
+
+- **/core/**: Contains core scripts including redata_api.py (22 KB)
+- **/data/**: Contains GeoJSON and CSV files (193 KB total)
+- **/mapping/**: Contains HTML map viewers (28 KB)
+- **/archive/**: Contains deprecated scripts (62 KB)
+- **/backup/**: Contains original script versions (40 KB)
+
+## 7. API Access Information
+
+- **Google Earth Engine**: Authenticated via private credentials in core/authenticate_ee.py
+- **REData API**: Public access with customized User-Agent
+  * Base URL: https://apidatos.ree.es/en/datos/
+  * Transmission Lines Endpoint: transporte/kilometros-lineas
+  * Substations Endpoint: transporte/capacidad-transformacion
+  * Outages Endpoint: indisponibilidades/tasa-indisponibilidad
+
+## 8. Data Update Process
+
+The data update process is handled by the launch_galicia_map.py script, which:
+1. Authenticates with Google Earth Engine
+2. Fetches satellite imagery
+3. Retrieves transmission line data from REData API
+4. Converts API data to GeoJSON format
+5. Launches a map viewer in the default browser
+
+## 9. Future Data Enhancements
+
+- Add power outage data when API access issues are resolved
+- Incorporate historical satellite imagery for time-series analysis
+- Add more detailed transmission line routing based on actual geographical paths
+- Implement real-time data updates for outage monitoring
+
+## 10. Data Usage Considerations
+
+- The satellite imagery is licensed under Copernicus terms
+- REData API data usage should comply with Red Eléctrica de España terms
+- Project code and structure are proprietary

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galicia Map Viewer - Satellite & Power Infrastructure</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""/>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .info-box {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background-color: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            max-width: 300px;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            right: 10px;
+            z-index: 1000;
+            background-color: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
+        
+        .legend-item {
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+        
+        .legend-label {
+            font-size: 12px;
+        }
+        
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+        }
+        
+        h2 {
+            margin: 10px 0 5px 0;
+            font-size: 14px;
+        }
+        
+        p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .outage-active {
+            color: red;
+            font-weight: bold;
+        }
+        
+        .outage-resolved {
+            color: #333;
+        }
+        
+        .outage-scheduled {
+            color: orange;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="info-box">
+        <h1>Galicia Infrastructure Map</h1>
+        <p>Sentinel-2 satellite imagery with power infrastructure overlay</p>
+        <p id="coordinates">Mouse coordinates: -</p>
+        <div id="feature-info">
+            <p>Click on map elements to view details</p>
+        </div>
+    </div>
+    
+    <div class="legend">
+        <h2>Legend</h2>
+        <div class="legend-item">
+            <span class="legend-color" style="background: #3388ff;"></span>
+            <span class="legend-label">Transmission Grid Data</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color" style="background: rgba(0, 0, 0, 0.4);"></span>
+            <span class="legend-label">Sentinel-2 Satellite Imagery</span>
+        </div>
+    </div>
+    
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
+    
+    <script>
+        // Initialize the map centered on Galicia, Spain
+        const map = L.map('map').setView([42.8, -8.0], 8);
+        
+        // Add OpenStreetMap as a base layer for reference
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        });
+        
+        // Add the Sentinel-2 tile layer from Earth Engine
+        const satelliteLayer = L.tileLayer('https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/maps/3c000861a0db397260e95bd1-f2879886eb76196fe0d0b380ec453099/tiles/{z}/{x}/{y}', {
+            attribution: 'Sentinel-2 imagery &copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>',
+            maxZoom: 14,
+            opacity: 0.8
+        });
+        
+        // Add base layers to map
+        osm.addTo(map);
+        satelliteLayer.addTo(map);
+        
+        // Function to parse date strings in a user-friendly format
+        function formatDate(dateString) {
+            if (!dateString) return 'Ongoing';
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        }
+        
+        // Function to show feature information in the info box
+        function showFeatureInfo(feature) {
+            const props = feature.properties;
+            let html = '<h2>' + props.name + '</h2>';
+            
+            if (props.type === 'transmission_line') {
+                html += '<p>Type: Transmission Line</p>';
+                html += '<p>Voltage: ' + props.voltage + '</p>';
+            } 
+            else if (props.type === 'substation') {
+                html += '<p>Type: Substation</p>';
+                html += '<p>Capacity: ' + props.capacity + '</p>';
+            }
+            else if (props.type === 'grid_summary') {
+                html += '<p>Total Transmission Lines: ' + props.total_km + ' km</p>';
+                html += '<p>Source: ' + props.data_source + '</p>';
+            }
+            else if (props.type === 'outage') {
+                const statusClass = props.status === 'active' ? 'outage-active' : 
+                                    (props.status === 'scheduled' ? 'outage-scheduled' : 'outage-resolved');
+                
+                html += '<p>Type: Power Outage</p>';
+                html += '<p class="' + statusClass + '">Status: ' + props.status.charAt(0).toUpperCase() + props.status.slice(1) + '</p>';
+                html += '<p>Start: ' + formatDate(props.start_date) + '</p>';
+                html += '<p>End: ' + formatDate(props.end_date) + '</p>';
+                html += '<p>Affected Customers: ' + props.affected_customers + '</p>';
+                html += '<p>Cause: ' + props.cause + '</p>';
+            }
+            
+            document.getElementById('feature-info').innerHTML = html;
+        }
+
+        // Debug function to log data to the info box
+        function debugLog(message) {
+            console.log(message);
+            document.getElementById('feature-info').innerHTML += '<p><i>' + message + '</i></p>';
+        }
+        
+        // Load and display electrical grid data - with explicit debugging
+        debugLog('Attempting to load electrical grid data...');
+        fetch('/data/electrical_grid.geojson')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Network response was not ok: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                debugLog('Successfully loaded electrical grid data');
+                
+                // Create layers for different types of features
+                const transmissionLines = L.geoJSON(data, {
+                    filter: feature => feature.properties.type === 'transmission_line',
+                    style: feature => ({
+                        color: feature.properties.color || '#3388ff',
+                        weight: feature.properties.weight || 3,
+                        opacity: 0.8
+                    }),
+                    onEachFeature: (feature, layer) => {
+                        debugLog('Added transmission line: ' + feature.properties.name);
+                        layer.on({
+                            click: () => showFeatureInfo(feature)
+                        });
+                    }
+                });
+                
+                const substations = L.geoJSON(data, {
+                    filter: feature => feature.properties.type === 'substation' || feature.properties.type === 'grid_summary',
+                    pointToLayer: (feature, latlng) => {
+                        return L.circleMarker(latlng, {
+                            radius: 8,
+                            fillColor: '#0000FF',
+                            color: '#000',
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        });
+                    },
+                    onEachFeature: (feature, layer) => {
+                        debugLog('Added point feature: ' + feature.properties.name);
+                        layer.on({
+                            click: () => showFeatureInfo(feature)
+                        });
+                    }
+                });
+                
+                // Add boundary
+                const boundaries = L.geoJSON(data, {
+                    filter: feature => feature.properties.type === 'boundary',
+                    style: feature => ({
+                        color: feature.properties.color || '#000',
+                        weight: feature.properties.weight || 2,
+                        opacity: feature.properties.opacity || 0.7,
+                        fillOpacity: feature.properties.fillOpacity || 0.1
+                    }),
+                    onEachFeature: (feature, layer) => {
+                        debugLog('Added boundary: ' + feature.properties.name);
+                    }
+                });
+                
+                // Add to our map
+                debugLog('Adding layers to map...');
+                transmissionLines.addTo(map);
+                substations.addTo(map);
+                boundaries.addTo(map);
+                
+                // Add to overlay controls
+                const overlayMaps = {
+                    "Transmission Grid": transmissionLines,
+                    "Grid Points": substations,
+                    "Region Boundary": boundaries
+                };
+                updateLayerControl(overlayMaps);
+                
+                // Zoom to fit the boundary
+                boundaries.getBounds().isValid() && map.fitBounds(boundaries.getBounds());
+            })
+            .catch(error => {
+                console.log('Electrical grid data not available:', error);
+                // Add a note to the info box
+                document.getElementById('feature-info').innerHTML += '<p><i>Electrical grid data is not currently available.</i></p>';
+            });
+        
+        // Load and display power outage data
+        fetch('/data/power_outages.geojson')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Network response was not ok: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const outages = L.geoJSON(data, {
+                    pointToLayer: (feature, latlng) => {
+                        const status = feature.properties.status;
+                        let color = '#808080'; // default gray for resolved
+                        
+                        if (status === 'active') {
+                            color = '#FF0000'; // red for active outages
+                        } else if (status === 'scheduled') {
+                            color = '#FF8C00'; // orange for scheduled outages
+                        }
+                        
+                        return L.circleMarker(latlng, {
+                            radius: 10,
+                            fillColor: color,
+                            color: '#000',
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        });
+                    },
+                    onEachFeature: (feature, layer) => {
+                        layer.on({
+                            click: () => showFeatureInfo(feature)
+                        });
+                    }
+                });
+                
+                // Add to our map
+                outages.addTo(map);
+                
+                // Add to overlay controls
+                const overlayMaps = {
+                    "Power Outages": outages
+                };
+                updateLayerControl(overlayMaps);
+            })
+            .catch(error => {
+                console.log('Power outages data not available:', error);
+                // Add a note to the info box
+                document.getElementById('feature-info').innerHTML += '<p><i>Power outage data is not currently available.</i></p>';
+            });
+        
+        // Define layer controls
+        const baseMaps = {
+            "OpenStreetMap": osm,
+            "Satellite": satelliteLayer
+        };
+        
+        // Function to update layer control as layers are added
+        let layerControl = null;
+        function updateLayerControl(overlayMaps) {
+            if (layerControl) {
+                layerControl.remove();
+            }
+            layerControl = L.control.layers(baseMaps, overlayMaps).addTo(map);
+        }
+        
+        // Initialize layer control
+        updateLayerControl();
+        
+        // Add a scale control
+        L.control.scale().addTo(map);
+        
+        // Display coordinates on mouse move
+        const coordsDisplay = document.getElementById('coordinates');
+        map.on('mousemove', function(e) {
+            coordsDisplay.innerHTML = `Mouse coordinates: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+        });
+    </script>
+</body>
+</html>
